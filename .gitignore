@@ -43,3 +43,5 @@ htmlcov/
 *.egg-info/
 .mypy_cache/
 .ruff_cache/
+fa117859-5839-447e-9585-a840132fa2a0_260724.backup
+supabase_export.sql
