@@ -101,3 +101,37 @@ The app also has a separate **Supabase** integration (`src/integrations/supabase
 
 - Backend and frontend are versioned independently; there is no single top-level test/build command that covers both.
 - `scripts/` at the monorepo root (`fetch-all.sh`, `commit-all.sh`, `sync-and-push.sh`, `setup-remotes.sh`) operate across both submodules for repo/remote maintenance — read them before use since they iterate git operations across `backend/` and `frontend/`.
+
+## Student submission repo (single GitHub repo)
+
+The assessment rubric wants **one** GitHub link, but this workspace is a superproject with
+two independent sub-repos. `scripts/export-student-repo.sh` rebuilds the apps as a **single
+flat repo** owned by the student account — no submodules, no history.
+
+How it works:
+
+- **Export, not clone.** It rsyncs the `backend/` and `frontend/` file trees into a fresh
+  directory (dropping every `.git/`), so no submodule pointers or commit history carry over.
+- **Rubric-basics only — it intentionally excludes:** all `.env` files (the tracked
+  `frontend/.env` contains real API/Supabase keys), `backend/data/*` and `backend/artifacts/`
+  (heavy raw data + trained models — regenerated via `scripts/process_data.py` +
+  `scripts/train_all_models.py`), `node_modules`, `.venv`, build output, and `.lovable/`.
+- **What it keeps:** source, tests, dependency manifests (`pyproject.toml`/`requirements.txt`,
+  `package.json`/`bun.lock`), `docker-compose.yml` + `deploy/nginx`, `.env.example`, a generated
+  root `README.md` (setup, features, ML-topic rubric table, AI transparency statement), the
+  assessment report, and an empty `screenshots/` dir.
+- **Push:** uses `gh repo create <owner>/<repo> --source=<dest> --push` (or attaches an
+  existing repo). **`gh` must be logged into the STUDENT account** (`gh auth status` /
+  `gh auth switch`) — the repo is created under whatever account `gh` is authenticated as.
+
+```bash
+# inspect the exported tree without touching GitHub
+scripts/export-student-repo.sh --dest /tmp/student/retailmind-ai \
+  --repo "student-username/retailmind-ai" --dry-run
+
+# real run (public repo, logical per-section commits), then push
+scripts/export-student-repo.sh --dest /tmp/student/retailmind-ai \
+  --repo "student-username/retailmind-ai" --public
+```
+
+Afterwards, fill in the README group section and drop screenshots into `screenshots/`.
