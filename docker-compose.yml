@@ -1,60 +1,24 @@
+# RetailMind AI — full-stack local deployment (PostgreSQL + backend + frontend + nginx)
+#
+#   docker compose up --build -d
+#   open http://localhost:8081          (frontend, via nginx)
+#   open http://localhost:8081/docs     (backend OpenAPI docs)
+#
+# Login: admin@retailmind.ai / ChangeMe123!  (created by the backend-init seed service)
+#
+# Pre-trained model artifacts are baked into the backend image at build time
+# (see backend/.dockerignore — artifacts/ is no longer excluded). The app
+# NEVER trains at runtime; to (re)build models run
+#   python scripts/train_all_models.py
+# inside the backend, or a one-off container:
+#   docker compose run --rm backend python scripts/train_all_models.py
+
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: retailmind-backend
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-retail}:${POSTGRES_PASSWORD:-retail_dev_password}@db:5432/${POSTGRES_DB:-retail_intelligence}
-      CORS_ORIGINS: http://localhost:3000,http://localhost:4000,http://localhost:5173
-      API_KEY: ${API_KEY:-retailmind-dev-api-key}
-    volumes:
-      - model_artifacts:/app/artifacts
-      - uploaded_data:/app/data/uploads
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    networks:
-      - retail_network
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: retailmind-frontend
-    ports:
-      - "3000:3000"
-    env_file:
-      - .env
-    environment:
-      # Resolved by the browser, not by the frontend container — so it must be the
-      # host-published address of the backend, not the "backend" service hostname.
-      VITE_API_BASE_URL: http://localhost:8000/api/v1
-      VITE_API_KEY: ${API_KEY:-retailmind-dev-api-key}
-      VITE_USE_MOCKS: "false"
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - retail_network
-    restart: unless-stopped
-
   db:
     image: postgres:17-alpine
     container_name: retailmind-db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-retail_intelligence}
       POSTGRES_USER: ${POSTGRES_USER:-retail}
@@ -70,9 +34,98 @@ services:
       - retail_network
     restart: unless-stopped
 
+  backend:
+    image: retailmind-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: retailmind-backend
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DEBUG: "false"
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-retail}:${POSTGRES_PASSWORD:-retail_dev_password}@db:5432/${POSTGRES_DB:-retail_intelligence}
+      SECRET_KEY: ${SECRET_KEY:-retailmind-demo-secret-key-please-change-in-prod-32chars}
+      API_KEY: ${API_KEY:-retailmind-demo-api-key}
+      CORS_ORIGINS: http://localhost:8080,http://localhost:3000,http://localhost:4000,http://localhost:5173
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      MODEL_PATH: /app/artifacts
+      UPLOAD_PATH: /app/data/uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploaded_data:/app/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - retail_network
+    restart: unless-stopped
+
+  # One-shot seeder: users, customers, products, inventory, model runs + demo
+  # sales/reviews. Idempotent — safe on every `docker compose up`.
+  backend-init:
+    image: retailmind-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: retailmind-backend-init
+    command: ["sh", "-c", "python scripts/seed.py && python scripts/generate_demo_data.py"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-retail}:${POSTGRES_PASSWORD:-retail_dev_password}@db:5432/${POSTGRES_DB:-retail_intelligence}
+      SECRET_KEY: ${SECRET_KEY:-retailmind-demo-secret-key-please-change-in-prod-32chars}
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - retail_network
+    restart: "no"
+
+  frontend:
+    image: retailmind-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_API_KEY: ${API_KEY:-retailmind-demo-api-key}
+        VITE_USE_MOCKS: "false"
+    container_name: retailmind-frontend
+    environment:
+      PORT: "3000"
+      HOST: "0.0.0.0"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - retail_network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: retailmind-nginx
+    ports:
+      - "8081:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - retail_network
+    restart: unless-stopped
+
 volumes:
   pgdata:
-  model_artifacts:
   uploaded_data:
 
 networks:
