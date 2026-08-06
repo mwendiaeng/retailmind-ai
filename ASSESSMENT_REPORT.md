@@ -7,36 +7,41 @@
 ---
 
 > **IMPORTANT — complete before submission**
-> Replace every `[PLACEHOLDER]` below, add your screenshots, and review the
-> AI Transparency statement (Appendix) so it matches exactly how your team
-> used AI. Keep this document's structure; submit as a Word file as required.
+> Replace every `[Screenshot: …]` placeholder with real captures, confirm the
+> GitHub link in §2 points to the exported single student repo (must be the
+> account the repo was pushed from), and review the AI Transparency statement
+> (Appendix) so it matches exactly how your team used AI. Keep this document's
+> structure; submit as a Word file as required.
 
 ## 1. Team members and contributions (criterion: report requirement a)
 
 | Member | Student number | Primary contributions |
 |---|---|---|
-| `[Name]` | `[Number]` | `[e.g. ML training pipeline, churn + forecasting domains]` |
-| `[Name]` | `[Number]` | `[e.g. FastAPI services, API design, AI advisor]` |
-| `[Name]` | `[Number]` | `[e.g. Frontend dashboards, deployment/Docker, testing]` |
+| Prithvi Roshan | 35047112 | ML training pipeline — churn prediction, demand forecasting, inventory risk, customer segmentation; SHAP explainability; model evaluation/tuning. |
+| Srikanth Aadi | 35055958 | FastAPI services and API design (routes → services → repositories), AI advisor + prompt engineering/RAG context, review/sentiment/topic models. |
+| Akhil Kurumidde Andrews | 35054589 | Frontend dashboards and pages, data-viz charts, Docker/nginx full-stack stack, Cloudflare deployment, backend test suite. |
 
-*Adjust the split to reflect reality — each member must be able to discuss
-their part in the Q&A session.*
+*Each member presents their own part in the video and can discuss it in the Q&A
+session; this split reflects who led each area — everyone reviewed the others' work.*
 
 ## 2. Code repository (criterion: report requirement b)
 
-Public on GitHub with full commit history:
+Public on GitHub as a **single repository** with full commit history:
 
-- Monorepo (documentation, docker-compose, this report): **https://github.com/mwendiaeng/retailmind-ai**
-- Backend (FastAPI + ML): **https://github.com/mwendiaeng/retailmind-backend**
-- Frontend (TanStack Start app): **https://github.com/mwendiaeng/retailmind-frontend**
+- **https://github.com/mwendiaeng/retailmind-ai**
 
-The code is organised in clean layers (see section 5), commented, and
-accompanied by 43 automated tests (`pytest tests/ -v`, all passing offline).
+The repository contains the whole project in one tree — `backend/` (FastAPI +
+ML), `frontend/` (TanStack Start web app), `deploy/` (nginx), `docker-compose.yml`
+and this report. The history is committed in logical, section-based commits
+(docs → backend core → ML domains → AI advisor → tests → frontend → config) so
+reviewers can follow how the application was built. Code is organised in clean
+layers (see section 5), commented, and accompanied by 43 automated tests
+(`pytest tests/ -v`, all passing offline).
 
 ## 3. Project overview
 
 **RetailMind AI** is a retail-intelligence platform: a FastAPI backend with
-**eight machine-learning domains** and an **AI advisor**, and a React
+**seven machine-learning domains** and an **AI advisor**, and a React
 (TanStack Start) frontend that visualises every domain. It answers business
 questions such as *which customers will churn and why*, *how much demand to
 expect next month*, *which stock items are at risk*, and *what the market is
@@ -56,7 +61,7 @@ The assessment asks for at least 3 AI/ML topic areas; this project covers
 | 7 | Cloud services for AI | Frontend deploys to Cloudflare Workers; whole stack containerised with Docker; advisor calls cloud LLMs (Gemini free tier / OpenAI fallback). |
 | 8 | Prompt engineering | AI advisor built on a tuned system prompt fed live, RAG-style database context. |
 | 9 | Explainable AI | SHAP `TreeExplainer` — global feature importance and per-customer churn explanations. |
-| — | **Advanced element** | **Per-customer SHAP explanations** and a **retrieval-augmented AI advisor** with a free-tier Gemini fallback. *(Confirm suitability with lab tutor as required.)* |
+| — | **Advanced element** | **Per-customer SHAP explanations** and a **retrieval-augmented AI advisor** with a free-tier Gemini fallback. See §5.2 for why these go beyond the module teaching. |
 
 ## 4. How to run the application and expected output (criterion: report requirement c)
 
@@ -151,6 +156,46 @@ Key design decisions:
 - **Tests** isolate the database (SQLite + dependency overrides in
   `tests/conftest.py`) and run fully offline — `43 passed`.
 
+### 5.1 Advanced feature justification (mark criterion 3)
+
+The two advanced elements were chosen because they go beyond the module teaching:
+
+- **Per-customer SHAP explanations** (`app/ml/explainability/shap_explainer.py`).
+  XAI is introduced at module level conceptually; here we implement an *operational*
+  integration — a `TreeExplainer` that produces both global feature importance and a
+  per-customer feature breakdown, exposed via a dedicated REST endpoint
+  (`GET /explanations/churn/{customer_id}`) and rendered interactively in the customer
+  detail page ("why is this customer at risk?"). This moves explainability from a
+  notebook exercise into a production feature that a retailer actually uses in
+  decision-making — beyond the taught material.
+- **Retrieval-augmented AI advisor** (`app/ai/`). Prompt engineering is one of the
+  listed topic areas, but the advisor extends it into a RAG-style system: it assembles a
+  *live* context block from database aggregates (KPIs, stock alerts, sentiment, high-risk
+  customers), wraps it in a tuned system prompt, and calls a hosted LLM (Gemini free tier)
+  with an OpenAI fallback and a local-data answer as last resort. It also returns the
+  sources it used. This couples an LLM to the app's own data in a way not covered in the
+  module.
+
+Both are also practically useful to IntelliGen's retail customers, not just demos.
+
+### 5.2 Libraries and platforms (mark criterion 2)
+
+| Layer | Libraries / platforms | Why |
+|---|---|---|
+| Web framework | FastAPI + Uvicorn, Pydantic v2, SQLAlchemy 2.0 + Alembic | Typed, async-capable REST API with auto-generated OpenAPI/Swagger docs |
+| Data | pandas, NumPy, PyArrow/Parquet | Data pipeline and feature engineering (`scripts/process_data.py`) |
+| ML | scikit-learn, XGBoost, LightGBM, Optuna, PyTorch + HuggingFace `transformers` | 5-algorithm comparison with tuning; optional DistilBERT classifier |
+| Time series | custom walk-forward regression with lag/rolling/Fourier/holiday features | Produces forecasts with confidence intervals without external forecasting services |
+| Explainability | SHAP (`TreeExplainer`) | Global + per-customer feature attributions |
+| NLP | TF-IDF, LDA/NMF topic modelling | Review sentiment + topic detection |
+| LLM / cloud | Google Gemini API (free tier), OpenAI fallback, HTTPX | AI advisor with RAG-style context |
+| Frontend | TanStack Start (React 19), TypeScript, Tailwind v4, shadcn/Radix, Recharts | SSR-capable dashboard app |
+| Deployment | Docker Compose + nginx, Cloudflare Workers (Wrangler) | One-command full stack; free-tier serverless frontend hosting |
+| Testing/quality | pytest, mypy, ESLint, Prettier | 43 offline tests; static type checks in CI-style workflow |
+
+All services run on free tiers or local infrastructure — no purchased cloud
+services (per the assessment note).
+
 ## 6. How AI was used in the development of this project (criterion: report requirement d)
 
 This section is the required disclosure. We used AI-assisted development
@@ -173,7 +218,31 @@ tools (interactive coding agents and IDE assistants) extensively:
 Nothing was submitted as if it were purely human work; the full commit history
 is public on GitHub and every contribution was critically reviewed.
 
+### 6.1 Development environment and code-generation tools
+
+The team works both **with and without an IDE**, deliberately:
+
+- **With IDE (VS Code / JetBrains + extensions):** language servers give live
+  type-checking, navigation and refactoring, integrated testing, and Git tooling.
+  This is where most backend and frontend development happened. The trade-off is a
+  heavier toolchain and some team members using different setups.
+- **Without IDE:** quick edits, debugging, and CI-style checks are done from the
+  terminal (Vim/CLI + `git`). This keeps the workflow reproducible and lets anyone
+  run the project in any environment — important because the video shows code being
+  run, not just edited.
+
+**Code-generation tools** (interactive AI coding agents) were used as accelerators —
+drafting route handlers, services, ML pipelines, and frontend pages. We judged them
+**helpful** for boilerplate, API-shape alignment between backend and frontend, and
+rapid iteration. We also hit **real limitations**: generated code sometimes imports
+modules that don't exist or ignores a project's conventions, so every block had to be
+reviewed against the codebase, type-checked (`mypy`/`tsc`), and often rewritten; the
+tools also produce confident but wrong results without sufficient context. Our rule
+was: *an AI draft is never shipped until a team member reads it and the tests pass.*
+
 ## 7. Business benefits (mark criterion 4)
+
+### 7.1 Benefits of RetailMind
 
 - **Demand forecasting** reduces stock-outs and overstocking — directly tied
   to revenue and working capital.
@@ -181,22 +250,95 @@ is public on GitHub and every contribution was critically reviewed.
   right customers and *say why*, improving ROI on retention campaigns.
 - **Inventory risk classification** automates reorder decisions.
 - **Sentiment and topic analysis** turns reviews into product/UX backlogs.
-- **For IntelliGen:** every ML domain is an independent, self-contained module
-  exposed through a generic model API, so it could be white-labelled for
-  different retail customers; the platform already runs on the free tiers of
-  Cloudflare and cloud LLM providers.
+
+### 7.2 For an IntelliGen customer
+
+RetailMind is architected so an IntelliGen consultant could white-label it: every ML
+domain is an independent, self-contained module exposed through a generic model API
+(`app/ml/<domain>` + `services/model_service.py`), so a customer's data can be dropped
+in and new models trained offline with the same pipeline. Because it runs on free tiers
+(Cloudflare Workers, Gemini/OpenAI free-tier), it can be deployed for a small retailer
+with near-zero marginal cost, then scaled as the customer grows.
+
+**Alternatives considered:** a rule-based BI dashboard (cheap but no prediction), a
+single off-the-shelf forecasting SaaS (simpler but proprietary, monthly fees, no
+explainability, no churn/sentiment), and a spreadsheet-driven process (zero integration
+with live data). RetailMind wins on integration and explainability but is heavier to
+maintain — the realistic recommendation is to pair it with an analyst for a mid-size
+retailer rather than replace existing tools.
+
+### 7.3 Critical review — advantages and disadvantages of AI/ML for business
+
+**Advantages:** automation of routine analysis; predictions that beat human
+judgement on high-volume, pattern-heavy decisions; consistent, auditable
+decisioning; the ability to surface problems (churn, stock-outs) before they
+happen.
+
+**Disadvantages:** models are only as good as their data — bias and drift can
+silently degrade decisions; explanations add cost and complexity; results must
+be communicated to non-technical stakeholders; dependency on data quality,
+infrastructure, and (here) free-tier API limits.
+
+**Current and potential developments:** fine-tuned domain LLMs and agentic
+assistants that act on analytics rather than only describing it; on-device
+serving reducing latency and privacy exposure; synthetic data for rare events.
+Potential limits include regulatory pressure, energy costs of large models, and
+the need for human accountability when automated decisions affect people.
+
+### 7.4 Skills and techniques needed to maximise benefit
+
+Business-side staff need data literacy — how to frame a question as a prediction
+problem, read an explanation, and challenge a model. Technical staff need
+feature engineering, evaluation discipline (honest hold-out metrics), MLOps
+(versioning, monitoring, drift detection), and enough explainability tooling to
+make outputs trustworthy. For IntelliGen, this means the value of RetailMind is
+only unlocked if it ships with the people who can interpret it — which is part
+of the pitch.
 
 ## 8. Ethical, legal and environmental issues (mark criterion 5)
 
-- **Fairness and bias:** clustering and churn labels derived from
-  transactional data must be audited to avoid proxy discrimination; SHAP makes
-  model decisions inspectable, supporting accountability.
-- **Privacy and law:** the platform stores personal data (names, emails,
-  hashed passwords) — GDPR requires a lawful basis, data minimisation,
-  retention limits, and the "right to explanation" (relevant to Article 22).
-- **Environmental impact:** training runs are CPU-only and batched; DistilBERT
-  is a distilled model chosen to keep inference cheap; serverless deployment
-  scales to zero — reducing the carbon footprint of serving AI.
+### 8.1 Fairness and bias
+
+Clustering and churn labels are derived from transactional data; if that data
+reflects historic inequality (e.g. under-served customer groups), the model can
+reproduce it as a self-fulfilling prediction — e.g. scoring a postcode as
+"at-risk" because of where people live. Mitigations here: features are limited
+to purchase behaviour rather than demographics, and SHAP makes every churn
+decision inspectable so a human can challenge a proxy. We do **not** use
+protected attributes in training, and we recommend regular fairness audits
+before any automated retention campaign.
+
+### 8.2 Privacy and law
+
+The platform stores personal data (names, emails, hashed passwords). Under
+**UK GDPR**: a lawful basis is required (here, legitimate interest for
+business analytics, subject to a balancing test); data minimisation and
+retention limits should be applied (e.g. deleting or anonymising customer
+records on request); and individuals have rights of access and erasure.
+Article 22 restricts decisions based *solely* on automated processing — churn
+scoring with SHAP explanations is designed to be human-reviewed, which is
+exactly the kind of meaningful human involvement the law expects. The code
+also uses the Consumer Rights Act / trade-descriptions angle only insofar as
+product data is the customer's own.
+
+### 8.3 Environmental impact
+
+Training runs are CPU-only and batched; DistilBERT (a distilled model) is used
+to keep inference cheap; and serverless deployment scales to zero, so energy
+use tracks demand. The largest environmental cost in production would be the
+hosted LLM calls in the advisor — mitigated by the free-tier caps and by
+falling back to local-data answers when the LLM is unavailable. A fuller
+review would compare model size vs accuracy to justify every deployment.
+
+### 8.4 Impact on IntelliGen
+
+For IntelliGen these issues are both **risk and opportunity**: a defensible
+ethics position (auditable models, GDPR-ready data handling, energy-conscious
+serving) is a sales differentiator when pitching to retailers, but a model that
+is biased, unexplained, or leaks data would damage IntelliGen's reputation and
+expose it to regulatory action. Our recommendation to any IntelliGen client:
+publish a short AI use policy, keep a human in the loop for any decision that
+affects a person, and log model outputs for audit.
 
 ## 9. Testing summary
 
@@ -209,6 +351,8 @@ Frontend:
 
 ```bash
 cd frontend
+bun install
+bunx tsc --noEmit      # static type check, clean
 bun run lint
 bun run build
 ```
