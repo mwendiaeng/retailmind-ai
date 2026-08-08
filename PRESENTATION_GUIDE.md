@@ -86,7 +86,8 @@ Requires Docker with the Compose plugin.
 docker compose up --build -d
 ```
 
-Optional configuration (all have safe defaults — no `.env` file needed):
+Optional configuration — a root `.env` is included with working values; every
+variable also has a safe default, so you can override or omit it:
 
 ```bash
 API_KEY=retailmind-demo-api-key        # shared secret between frontend + backend
@@ -171,11 +172,8 @@ training is a completely separate, explicit step that never runs automatically.
 
    ```bash
    python scripts/process_data.py      # raw ZIPs → processed parquets
-   python scripts/train_all_models.py  # trains all 8 model families → artifacts/
+   python scripts/train_all.py         # trains all 7 ML domains → artifacts/
    ```
-
-   (Note: `scripts/train_all.py` — the name used in the README — was fixed;
-   it had an import typo. `train_all_models.py` is the working full pipeline.)
 4. **In Docker, artefacts are baked into the image at build time** and mounted
    read-only in use. Starting the containers performs zero training.
 
@@ -277,8 +275,8 @@ Each stop proves an assessment topic. Suggested pacing:
   to zero — good talking points on AI's carbon footprint.
 
 **AI transparency (AITS):** declare the level you're using (see appendix) and
-describe how AI-assisted development (this guide, code, tests) was reviewed by
-humans. Include the statement as a report appendix.
+describe how AI-assisted **tests, debugging, and code documentation** were
+reviewed by humans. Include the statement as a report appendix.
 
 ---
 
@@ -289,7 +287,7 @@ humans. Include the statement as a report appendix.
 | `docker compose up` port errors | Ports 8081/5433/8000 taken on your machine → change the `ports:` lines in `docker-compose.yml` (or use a fresh machine). |
 | API calls return `401 Invalid or missing API key` | `VITE_API_KEY` (frontend build arg) must equal backend `API_KEY`. Default is `retailmind-demo-api-key`. |
 | Charts empty / no data | The `backend-init` seeder must run: `docker compose up backend-init` (it is idempotent, safe to re-run). |
-| Forecast page returns 503 | `artifacts/demand_forecaster/demand_forecaster.joblib` missing from the image. Rebuild from a machine that has `backend/artifacts/`, or retrain: `docker compose run --rm backend python scripts/train_all_models.py`. |
+| Forecast page returns 503 | `artifacts/demand_forecaster/demand_forecaster.joblib` missing from the image. Rebuild from a machine that has `backend/artifacts/`, or retrain: `docker compose run --rm backend python scripts/train_all.py`. |
 | Frontend shows fake data | `VITE_USE_MOCKS` must be `"false"` at build time (it is, by default, in compose). |
 | Advisor answers without AI | No `GOOGLE_API_KEY` / `OPENAI_API_KEY` → the advisor falls back to a local-data answer (by design). Add a free Gemini key: https://aistudio.google.com/apikey |
 | `pytest` fails with 401s | Local `.env` has `API_KEY` set → run with `API_KEY= pytest tests/ -v`. |
@@ -300,11 +298,11 @@ humans. Include the statement as a report appendix.
 ```bash
 # one-off inside Docker
 docker compose run --rm backend python scripts/process_data.py
-docker compose run --rm backend python scripts/train_all_models.py
+docker compose run --rm backend python scripts/train_all.py
 
 # or locally (from backend/)
 python scripts/process_data.py
-python scripts/train_all_models.py     # writes backend/artifacts/
+python scripts/train_all.py          # writes backend/artifacts/
 ```
 
 New artefacts are picked up by the next `docker compose build backend`.

@@ -49,7 +49,7 @@ services:
       CORS_ORIGINS: http://localhost:8080,http://localhost:3000,http://localhost:4000,http://localhost:5173
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
       MODEL_PATH: /app/artifacts
       UPLOAD_PATH: /app/data/uploads
     ports:
@@ -59,6 +59,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      backend-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
       interval: 30s
@@ -68,6 +70,25 @@ services:
     networks:
       - retail_network
     restart: unless-stopped
+
+  # One-shot migrations: apply Alembic schema migrations to the DB.
+  # Idempotent — safe on every `docker compose up`.
+  backend-migrate:
+    image: retailmind-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: retailmind-backend-migrate
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-retail}:${POSTGRES_PASSWORD:-retail_dev_password}@db:5432/${POSTGRES_DB:-retail_intelligence}
+      SECRET_KEY: ${SECRET_KEY:-retailmind-demo-secret-key-please-change-in-prod-32chars}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - retail_network
+    restart: "no"
 
   # One-shot seeder: users, customers, products, inventory, model runs + demo
   # sales/reviews. Idempotent — safe on every `docker compose up`.
@@ -86,6 +107,8 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      backend-migrate:
+        condition: service_completed_successfully
     networks:
       - retail_network
     restart: "no"

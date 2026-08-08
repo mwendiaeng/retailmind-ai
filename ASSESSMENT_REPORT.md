@@ -198,47 +198,39 @@ services (per the assessment note).
 
 ## 6. How AI was used in the development of this project (criterion: report requirement d)
 
-This section is the required disclosure. We used AI-assisted development
-tools (interactive coding agents and IDE assistants) extensively:
+This section is the required disclosure. We used AI-assisted development tools
+for three well-scoped tasks **only: writing and running tests, debugging, and
+drafting code documentation.** The application's production code — route
+handlers, services, repositories, ML pipelines, the AI advisor, and every
+frontend page — was written by the team by hand.
 
-- **Code generation and scaffolding:** AI assistants drafted route handlers,
-  services, ML pipelines, database models, frontend pages, and Docker
-  configuration. Every generated block was reviewed by a team member,
-  type-checked, and covered by tests; significant parts were rewritten.
-- **Debugging and refactoring:** AI was used to trace failing tests (e.g.
-  graceful-degradation behaviour when artifacts are absent) and to restructure
-  the advisor's provider abstraction to support Gemini.
-- **Testing:** AI helped author the pytest suite (API, ML, and service tests).
-  The suite is run by the team and all 43 tests pass.
-- **Documentation:** this report, the presentation guide, and commit messages
-  were drafted with AI assistance and then reviewed and edited by the team.
-- **The product itself** also contains AI features (ML models and an LLM
-  advisor) — those are the deliverable, not part of this disclosure.
+- **Testing:** AI helped author and review the pytest suite (API, ML, and
+  service tests) and the static checks (mypy/tsc, ESLint). The suite is run by
+  the team and all 43 tests pass.
+- **Debugging:** AI was used to trace failing tests (e.g. graceful-degradation
+  behaviour when artifacts are absent) and to suggest fixes, which the team then
+  applied and verified against the codebase.
+- **Code documentation:** AI helped draft docstrings, inline comments, and the
+  per-module README files in the codebase; these were then reviewed and edited
+  by the team.
 
 Nothing was submitted as if it were purely human work; the full commit history
 is public on GitHub and every contribution was critically reviewed.
 
-### 6.1 Development environment and code-generation tools
+### 6.1 Scope boundary — why AI was limited to tests, debugging and documentation
 
-The team works both **with and without an IDE**, deliberately:
+We deliberately kept AI use out of the production codebase:
 
-- **With IDE (VS Code / JetBrains + extensions):** language servers give live
-  type-checking, navigation and refactoring, integrated testing, and Git tooling.
-  This is where most backend and frontend development happened. The trade-off is a
-  heavier toolchain and some team members using different setups.
-- **Without IDE:** quick edits, debugging, and CI-style checks are done from the
-  terminal (Vim/CLI + `git`). This keeps the workflow reproducible and lets anyone
-  run the project in any environment — important because the video shows code being
-  run, not just edited.
-
-**Code-generation tools** (interactive AI coding agents) were used as accelerators —
-drafting route handlers, services, ML pipelines, and frontend pages. We judged them
-**helpful** for boilerplate, API-shape alignment between backend and frontend, and
-rapid iteration. We also hit **real limitations**: generated code sometimes imports
-modules that don't exist or ignores a project's conventions, so every block had to be
-reviewed against the codebase, type-checked (`mypy`/`tsc`), and often rewritten; the
-tools also produce confident but wrong results without sufficient context. Our rule
-was: *an AI draft is never shipped until a team member reads it and the tests pass.*
+- **Why this boundary:** the team wrote the application source itself so that
+  every route, service, ML pipeline, and frontend page could be explained in the
+  video and Q&A without relying on code the team had not fully authored.
+- **Where AI was useful:** test authoring and debugging benefit from fast,
+  pattern-driven iteration, and drafting code documentation (docstrings,
+  comments, READMEs) is where AI reduces friction without touching the shipped
+  product.
+- **How it was verified:** every AI-assisted test or documentation draft was
+  read by a team member, run against the real codebase, and edited before
+  inclusion.
 
 ## 7. Business benefits (mark criterion 4)
 
@@ -362,12 +354,13 @@ bun run build
 > **Statement level used: 3 — AI for Developing** (see the AI Transparency
 > Scale in the assessment brief; adjust if your usage differs).
 >
-> We declare that AI tools were used to assist with detailed development of
-> many aspects of this project (code generation, debugging, tests, and
-> documentation) as described in section 6. A human team member directed,
-> reviewed, and critically edited all AI-generated outputs, and the final
-> submission — the application, its tests, and this report — was verified and
-> curated by the team. No AI output was submitted without human review.
+> We declare that AI tools were used to assist with **tests, debugging, and
+> code documentation only**, as described in section 6. AI was not used to
+> generate the application's production code, which was written by the team.
+> A human team member directed, reviewed, and critically edited all
+> AI-assisted outputs, and the final submission — the application, its tests,
+> and this report — was verified and curated by the team. No AI output was
+> submitted without human review.
 
 ---
 

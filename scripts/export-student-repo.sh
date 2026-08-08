@@ -12,8 +12,11 @@
 # What is NOT     -> .git/ dirs (no history/submodule pointers), node_modules,
 #                    .venv, build output (.output/.output-docker/dist),
 #                    data/raw|processed|extracted|uploads, artifacts/,
-#                    and EVERY .env file (frontend/.env is tracked upstream
-#                    and contains real API keys - it must never be copied).
+#                    supabase (frontend/src/integrations/supabase/, frontend/
+#                    supabase/ and the unused hooks/use-auth.ts that imports
+#                    it), and EVERY .env file (frontend/.env is tracked
+#                    upstream and contains real API keys - it must never be
+#                    copied).
 #
 # Prereqs: rsync, git, gh (GitHub CLI) logged in as the STUDENT account.
 #
@@ -135,7 +138,9 @@ rsync -a --delete --prune-empty-dirs "${COMMON_EXCLUDES[@]}" \
   --exclude='/.output/' \
   --exclude='/.output-docker/' \
   --exclude='/.lovable/' \
-  --exclude='/supabase/.tmp/' \
+  --exclude='/supabase/' \
+  --exclude='/src/integrations/supabase/' \
+  --exclude='/src/hooks/use-auth.ts' \
   "$FRONTEND_DIR/" "$DEST/frontend/"
 
 echo "  root files: docker-compose.yml, deploy/, .env.example, report, screenshots/"
@@ -279,6 +284,9 @@ dist/
 .output/
 .output-docker/
 .lovable/
+supabase/
+src/integrations/supabase/
+src/hooks/use-auth.ts
 GI
 
 if [[ "$DRY_RUN" == true ]]; then
@@ -304,6 +312,9 @@ check_absent "backend/.venv"
 check_absent "frontend/.output-docker"
 check_absent "frontend/.git"
 check_absent "backend/.git"
+check_absent "frontend/supabase"
+check_absent "frontend/src/integrations/supabase"
+check_absent "frontend/src/hooks/use-auth.ts"
 echo "  ok: .env.example present: $([[ -f "$DEST/frontend/.env.example" || -f "$DEST/.env.example" ]] && echo yes || echo no)"
 echo "  repo size: $(du -sh "$DEST" | cut -f1)"
 

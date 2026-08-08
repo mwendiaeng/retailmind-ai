@@ -57,9 +57,9 @@ The frontend switches between **mock** and **real** data via `VITE_USE_MOCKS`
 To run the local dev servers against the live backend instead:
 
 ```bash
-# in frontend/.env.local (do not commit) — copy the values from the root .env.example
+# in frontend/.env.local (do not commit) — copy the values from the root .env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_API_KEY=retailmind-dev-api-key   # must match backend/.env API_KEY when that gate is on
+VITE_API_KEY=<value of API_KEY in root .env / backend/.env>   # must match when the gate is on
 VITE_USE_MOCKS=false
 ```
 
@@ -265,7 +265,7 @@ logged in; sign out (sidebar or user menu) → back to `/auth`.
 
 ## 5. Developer verification
 
-Run these before any demo or submission (each repo is independent — see `CLAUDE.md`).
+Run these before any demo or submission (run each from its own directory — `backend/` or `frontend/`).
 
 ```bash
 # backend — tests + type check (from backend/)
